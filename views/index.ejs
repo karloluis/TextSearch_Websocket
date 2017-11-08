@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= title %></title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+  </head>
+  <body>
+    <h1><%= title %></h1>
+    <p>Welcome to <%= title %></p>
+
+    <input id="picker" type="text" oninput="askForStock()"/>
+
+    <div id="picked">
+      <h1>Test</h1>
+    </div>
+
+    <script>
+      const ws = new WebSocket("ws://localhost:3300/");
+      // ws.binaryType = "arraybuffer";
+      console.log(ws)
+      ws.onopen = function () {
+      }
+
+      ws.onmessage = function (message) {
+        const content = JSON.parse(message.data);
+
+        const picked = document.getElementById('picked')
+        let ticker = undefined;
+        let price = undefined;
+        let country = undefined;
+
+        while(picked.hasChildNodes()){
+          picked.removeChild(picked.firstChild);
+        }
+
+        content.payload.forEach( function ({ Ticker, Price, Country }) {
+
+          ticker = document.createElement('li')
+          tickerContent = document.createTextNode(Ticker);
+          ticker.appendChild(tickerContent);
+
+          price = document.createElement('li')
+          priceContent = document.createTextNode(Price);
+          price.appendChild(priceContent);
+
+          country = document.createElement('li')
+          countryContent = document.createTextNode(Country);
+          country.appendChild(countryContent);
+
+          picked.appendChild(ticker);
+          picked.appendChild(price);
+          picked.appendChild(country);
+        });
+
+      }
+
+      function askForStock() {
+        console.log('sending form value')
+        ws.send(document.getElementById('picker').value);
+
+      }
+    </script>
+
+    <% pickedStocks.forEach( function (stock){ %>
+      <div>
+        <ul>
+          <li><%= stock.Ticker %></li>
+          <li><%= stock.Country %></li>
+          <li><%= stock.Price %></li>
+        </ul
+      </div>
+    <% }) %>
+  </body>
+</html>
