@@ -3,72 +3,121 @@
   <head>
     <title><%= title %></title>
     <link rel='stylesheet' href='/stylesheets/style.css' />
+
+    <style>
+      #picked {
+        margin: 40px 0;
+        height: 80px;
+      }
+
+      #picked span {
+        margin: 14px;
+        padding: 8px;
+        background-color: #e6e8d9;
+        border-radius: 30%;
+      }
+    </style>
   </head>
   <body>
     <h1><%= title %></h1>
     <p>Welcome to <%= title %></p>
 
-    <input id="picker" type="text" oninput="askForStock()"/>
-
     <div id="picked">
-      <h1>Test</h1>
     </div>
 
+    <input id="picker" type="text" list="matched" oninput="askForStock()" onkeyup="addPickedStock(event)"/>
+
+
+    <datalist class="" id="matched" onclick="">
+
+    </datalist>
+
     <script>
+      // Connect to the socket on the server.
       const ws = new WebSocket("ws://localhost:3300/");
-      // ws.binaryType = "arraybuffer";
-      console.log(ws)
+
       ws.onopen = function () {
+        // No action required on opening the connection
       }
 
+      // Messages received will have data for stocks relevant to the search
       ws.onmessage = function (message) {
+        // Unwraps the socket data into JSON format
         const content = JSON.parse(message.data);
 
-        const picked = document.getElementById('picked')
+        // Target datalist for matches
+        const matched = document.getElementById('matched')
         let ticker = undefined;
         let price = undefined;
         let country = undefined;
 
-        while(picked.hasChildNodes()){
-          picked.removeChild(picked.firstChild);
+        // Clear previously search matched stocks
+        while(matched.hasChildNodes()){
+          matched.removeChild(matched.firstChild);
         }
 
+        // Loop over each match and list it for the user.
         content.payload.forEach( function ({ Ticker, Price, Country }) {
+          // TODO Use pickedStocks to avoid displaying already picked ones
+          //      showing on the sugested list
 
-          ticker = document.createElement('li')
-          tickerContent = document.createTextNode(Ticker);
-          ticker.appendChild(tickerContent);
+          ticker = document.createElement('option')
 
-          price = document.createElement('li')
-          priceContent = document.createTextNode(Price);
-          price.appendChild(priceContent);
 
-          country = document.createElement('li')
-          countryContent = document.createTextNode(Country);
-          country.appendChild(countryContent);
+          ticker.setAttribute('value', Ticker);
+          ticker.setAttribute('label', Ticker);
 
-          picked.appendChild(ticker);
-          picked.appendChild(price);
-          picked.appendChild(country);
+          // tickerContent = document.createTextNode(Ticker);
+          // ticker.appendChild(tickerContent);
+
+          matched.appendChild(ticker);
         });
 
       }
 
+      // Function that asks to search for matching stocks
+      // Avoids premature matching of stocks before two characters are written
       function askForStock() {
-        console.log('sending form value')
-        ws.send(document.getElementById('picker').value);
+        if(document.getElementById('picker').value.length >= 2) {
+          ws.send(document.getElementById('picker').value);
+        }
+      }
 
+      let pickedStocks = []; // Holds all previously picked stocks.
+      function addPickedStock(event) {
+        // Trigger adding stocks to list only when hitting enter on input
+        if(event.keyCode == 13){
+          // Force capitalization of tickers
+          const pick = document.getElementById('picker').value.toUpperCase();
+
+          // Avoid duplicate stocks being picked
+          if(!pickedStocks.includes(pick)) {
+            pickedStocks.push(pick);
+          }
+
+          // Reset the input to blank after adding the stock.
+          document.getElementById('picker').value = "";
+
+          const picked = document.getElementById('picked');
+
+          // Clear shown picked stocks above the unput
+          // NOTE Could simply add the latest addition
+          //      Used only to ensure displayed Tickers are ones picked
+          while(picked.hasChildNodes()){
+            picked.removeChild(picked.firstChild);
+          }
+
+          // Loop over each picked stock ticker and add it to the view
+          pickedStocks.forEach(function (ticker) {
+            const stock = document.createElement('span');
+
+            stockContent = document.createTextNode(ticker);
+            stock.appendChild(stockContent);
+
+            picked.appendChild(stock);
+          })
+        }
       }
     </script>
-
-    <% pickedStocks.forEach( function (stock){ %>
-      <div>
-        <ul>
-          <li><%= stock.Ticker %></li>
-          <li><%= stock.Country %></li>
-          <li><%= stock.Price %></li>
-        </ul
-      </div>
-    <% }) %>
   </body>
 </html>
