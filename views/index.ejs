@@ -28,7 +28,7 @@
     <input id="picker" type="text" list="matched" oninput="askForStock()" onkeyup="addPickedStock(event)"/>
 
 
-    <datalist class="" id="matched" onclick="">
+    <datalist class="" id="matched" multiple>
 
     </datalist>
 
@@ -45,6 +45,8 @@
         // Unwraps the socket data into JSON format
         const content = JSON.parse(message.data);
 
+        console.log('see matches', content.payload);
+
         // Target datalist for matches
         const matched = document.getElementById('matched')
         let ticker = undefined;
@@ -58,12 +60,14 @@
 
         // Loop over each match and list it for the user.
         content.payload.forEach( function ({ Ticker, Price, Country }) {
+
           // TODO Use pickedStocks to avoid displaying already picked ones
           //      showing on the sugested list
 
           ticker = document.createElement('option')
 
 
+          ticker.setAttribute('id', Ticker);
           ticker.setAttribute('value', Ticker);
           ticker.setAttribute('label', Ticker);
 
@@ -78,9 +82,12 @@
       // Function that asks to search for matching stocks
       // Avoids premature matching of stocks before two characters are written
       function askForStock() {
-        if(document.getElementById('picker').value.length >= 2) {
-          ws.send(document.getElementById('picker').value);
-        }
+        const stock = document.getElementById('picker').value
+        let stocks = stock.split(/[\s]*,[\s]*/).filter(check => check.length >= 2);
+
+        console.log(stocks);
+        const data = { payload: stocks };
+        ws.send(JSON.stringify(data));
       }
 
       let pickedStocks = []; // Holds all previously picked stocks.
